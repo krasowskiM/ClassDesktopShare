@@ -1,0 +1,15 @@
+{
+  "name": "classdesktopshare",
+  "version": "1.0.0",
+  "description": "desktop sharing app",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "author": "Maciek",
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {
+    "jquery": "^3.3.1"
+  }
+}
