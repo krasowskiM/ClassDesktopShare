@@ -3,12 +3,37 @@
  */
 
 //inicjalizacja obiektu desktopCapturer odpowiedzialnego za przechwycenie
-const {desktopCapturer} = require('electron');
+const { desktopCapturer } = require('electron');
+const WebSocket = require('websocket').client;
+const config = {iceServers: [{urls: 'stun:stun.l.google.com:19302?transport=udp'}]};
+let socketClient = new WebSocket();
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+socketClient.connect('wss://localhost:8443/enableSocketConnection');
+let sockCon = undefined;
+
+socketClient.on('connect', function (connection) {
+    sockCon = connection;
+    let presenterMessage = {helloMessage: 'presenter'};
+    sockCon.send(JSON.stringify(presenterMessage));
+    console.log('WebSocket Client Connected');
+    connection.on('error', function (error) {
+        console.log("Connection Error: " + error.toString());
+    });
+    connection.on('close', function () {
+        console.log('echo-protocol Connection Closed');
+        connection.close();
+    });
+    connection.on('message', function (message) {
+        if (message.type === 'utf8') {
+            console.log("Received: '" + message.utf8Data + "'");
+        }
+    });
+});
 
 // W tej funkcji odbywa się określenie źródła obrazu, więcej info w API
-desktopCapturer.getSources({ 
+desktopCapturer.getSources({
     //w tablicy uzupełniamy źródła z których będzie pobierany obraz
-    types: ['window', 'screen'] 
+    types: ['window', 'screen']
     //funkcja z parametrami, error pojawia się w przypadku prawdopodobnych problemów I/O
     //sources - lista/tablica źródeł streamu
 }, (error, sources) => {
@@ -55,9 +80,41 @@ function handleStream(stream) {
     video.srcObject = stream;
     //jeżeli zostały dostarczone metadane, to jedziemy z odtwarzaniem
     video.onloadedmetadata = (e) => video.play();
+    start(true, stream);
 }
 
 //podstawowa obsługa błędu, wypisze go tylko na konsolę
 function handleError(e) {
     console.log(e);
 }
+
+function start(isCaller, stream) {
+    peerConnection = new webkitRTCPeerConnection(config);
+    peerConnection.onicecandidate = gotIceCandidate;
+    peerConnection.addStream(stream);
+
+    if (isCaller) {
+        peerConnection.createOffer(gotDescription, createOfferError);
+    }
+}
+
+function gotDescription(description) {
+    peerConnection.setLocalDescription(description, function () {
+        sockCon.send(JSON.stringify({ 'sdp': description }));
+    }, function () { console.log('set description error') });
+    console.log('got description');
+}
+
+function gotIceCandidate(event) {
+    if (event.candidate != null) {
+        sockCon.send(JSON.stringify({ 'ice': event.candidate }));
+    }
+}
+
+function createOfferError(error) {
+    console.log(error);
+}
+
+socketClient.on('connectFailed', function (error) {
+    console.log('Connect Error: ' + error.toString());
+});
