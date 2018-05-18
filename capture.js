@@ -5,15 +5,22 @@
 //inicjalizacja obiektu desktopCapturer odpowiedzialnego za przechwycenie
 const { desktopCapturer } = require('electron');
 const WebSocket = require('websocket').client;
-const config = {iceServers: [{urls: 'stun:stun.l.google.com:19302?transport=udp'}]};
+const config = {
+    iceServers: [{ urls: 'stun:stun.l.google.com:19302?transport=udp' },
+    { urls: 'turn:numb.viagenie.ca:3478?transport=udp', username: 'macris120@gmail.com', credential: 'admin1' }]
+};
+document.querySelector('#start').addEventListener('click', startStreaming);
+document.querySelector('#stop').addEventListener('click', stop);
 let socketClient = new WebSocket();
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
-socketClient.connect('wss://localhost:8443/enableSocketConnection');
+socketClient.connect('wss://192.168.0.136:8443/webRTCHandler');
 let sockCon = undefined;
+let peerConnection = new webkitRTCPeerConnection(config);
+let streamSource = undefined;
 
 socketClient.on('connect', function (connection) {
     sockCon = connection;
-    let presenterMessage = {helloMessage: 'presenter'};
+    let presenterMessage = { helloMessage: 'presenter' };
     sockCon.send(JSON.stringify(presenterMessage));
     console.log('WebSocket Client Connected');
     connection.on('error', function (error) {
@@ -26,6 +33,12 @@ socketClient.on('connect', function (connection) {
     connection.on('message', function (message) {
         if (message.type === 'utf8') {
             console.log("Received: '" + message.utf8Data + "'");
+            let signal = JSON.parse(message.utf8Data);
+            if(signal.sdp){
+                console.log('SDP received. Setting remote...');
+                peerConnection.setRemoteDescription(new RTCSessionDescription(signal.sdp));
+                console.log('done');
+            }
         }
     });
 });
@@ -80,7 +93,7 @@ function handleStream(stream) {
     video.srcObject = stream;
     //jeżeli zostały dostarczone metadane, to jedziemy z odtwarzaniem
     video.onloadedmetadata = (e) => video.play();
-    start(true, stream);
+    streamSource = stream;
 }
 
 //podstawowa obsługa błędu, wypisze go tylko na konsolę
@@ -88,14 +101,19 @@ function handleError(e) {
     console.log(e);
 }
 
-function start(isCaller, stream) {
-    peerConnection = new webkitRTCPeerConnection(config);
-    peerConnection.onicecandidate = gotIceCandidate;
-    peerConnection.addStream(stream);
+function startStreaming(){
+    start(true, streamSource);
+}
 
+function start(isCaller, stream) {
+    peerConnection.addStream(stream);
     if (isCaller) {
         peerConnection.createOffer(gotDescription, createOfferError);
     }
+}
+
+function stop(){
+    peerConnection.close();
 }
 
 function gotDescription(description) {
@@ -107,7 +125,11 @@ function gotDescription(description) {
 
 function gotIceCandidate(event) {
     if (event.candidate != null) {
-        sockCon.send(JSON.stringify({ 'ice': event.candidate }));
+        console.log('ice candidate received');
+        peerConnection.addIceCandidate(event.candidate);
+        let ice = JSON.stringify({ 'ice': event.candidate });
+        console.log(ice);
+        sockCon.send(ice);
     }
 }
 
@@ -115,6 +137,7 @@ function createOfferError(error) {
     console.log(error);
 }
 
+peerConnection.onicecandidate = gotIceCandidate;
 socketClient.on('connectFailed', function (error) {
     console.log('Connect Error: ' + error.toString());
 });

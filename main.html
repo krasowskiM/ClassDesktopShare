@@ -1,23 +1,30 @@
 <!-- Plik opisujący elementy okna głównego aplikacji -->
 <!DOCTYPE html>
 <html>
+
 <head>
     <meta charset="utf-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <!-- Tytuł okna głównego -->
     <title>classdesktopshare</title>
 </head>
+
 <body>
-<!-- Tutaj są budowane elementy okna głównego aplikacji, należy też dodać dodatkowe skrypty - procesy, które będą na nim operowały,
+    <!-- Tutaj są budowane elementy okna głównego aplikacji, należy też dodać dodatkowe skrypty - procesy, które będą na nim operowały,
 w naszym przypadku będzie to skrypt capture.js, w którym znajduje się cała logika odnosząca się do streamowania pulpitu -->
     <h1>
         Main
     </h1>
-<!-- Znacznik 'video' odpowiada za playera, w którym pojawia się obraz -->
+    <!-- Znacznik 'video' odpowiada za playera, w którym pojawia się obraz -->
     <video autoplay></video>
     <!-- Skrypt zawierający logikę streama -->
+    <button id="start">Start connection</button>
+    <button id="stop">Stop connection</button>
+
+
+
+
     <script src="capture.js"></script>
-    <button class="initiate" onclick="initiate()">Start connection</button>
-    <button class="stop" onclick="close()">Stop connection</button>
 </body>
+
 </html>
