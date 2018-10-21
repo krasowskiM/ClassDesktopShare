@@ -12,8 +12,7 @@ const config = {
 document.querySelector('#start').addEventListener('click', startStreaming);
 document.querySelector('#stop').addEventListener('click', stop);
 let socketClient = new WebSocket();
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
-socketClient.connect('wss://192.168.0.136:8443/webRTCHandler');
+socketClient.connect('wss://stream-support.herokuapp.com/webRTCHandler');
 let sockCon = undefined;
 let peerConnection = new webkitRTCPeerConnection(config);
 let streamSource = undefined;
