@@ -140,3 +140,8 @@ peerConnection.onicecandidate = gotIceCandidate;
 socketClient.on('connectFailed', function (error) {
     console.log('Connect Error: ' + error.toString());
 });
+
+setInterval(function(){
+    sockCon.send(JSON.stringify({'beatMessage': 'check!'}));
+}, 
+1000);

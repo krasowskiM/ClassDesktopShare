@@ -32,3 +32,12 @@ app.on('ready', function () {
         slashes: true
     }));
 });
+
+function showHideVideo(){
+    var videoElement = document.getElementById('videoElement');
+    if (videoElement.style.visibility === 'hidden') {
+        videoElement.style.visibility = 'visible';
+    } else {
+        videoElement.style.visibility = 'hidden';
+    }
+}

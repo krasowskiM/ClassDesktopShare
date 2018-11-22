@@ -11,7 +11,8 @@
   "dependencies": {
     "socket.io": "^2.0.4",
     "socket.io-client": "^2.0.4",
-    "websocket": "^1.0.25"
+    "websocket": "^1.0.25",
+    "electron": "^3.0.4"
   },
   "devDependencies": {
     "jquery": "^3.3.1"
