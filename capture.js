@@ -16,6 +16,9 @@ socketClient.connect('wss://stream-support.herokuapp.com/webRTCHandler');
 let sockCon = undefined;
 let peerConnection = new webkitRTCPeerConnection(config);
 let streamSource = undefined;
+let incomingSdp = undefined;
+let streamOn = false;
+let isNegotiating = false;
 
 socketClient.on('connect', function (connection) {
     sockCon = connection;
@@ -33,10 +36,15 @@ socketClient.on('connect', function (connection) {
         if (message.type === 'utf8') {
             console.log("Received: '" + message.utf8Data + "'");
             let signal = JSON.parse(message.utf8Data);
-            if(signal.sdp){
+            if (signal.sdp) {
                 console.log('SDP received. Setting remote...');
                 peerConnection.setRemoteDescription(new RTCSessionDescription(signal.sdp));
+                incomingSdp = signal.sdp;
                 console.log('done');
+            } else if (signal.helloMessage && streamOn) {
+                console.log('viewer has come!');
+                peerConnection.createOffer(gotDescription, createOfferError);
+                console.log('offer message sent!');
             }
         }
     });
@@ -100,18 +108,17 @@ function handleError(e) {
     console.log(e);
 }
 
-function startStreaming(){
+function startStreaming() {
     start(true, streamSource);
 }
 
 function start(isCaller, stream) {
     peerConnection.addStream(stream);
-    if (isCaller) {
-        peerConnection.createOffer(gotDescription, createOfferError);
-    }
+    peerConnection.createOffer(gotDescription, createOfferError);
+    streamOn = isCaller;
 }
 
-function stop(){
+function stop() {
     peerConnection.close();
 }
 
@@ -141,7 +148,24 @@ socketClient.on('connectFailed', function (error) {
     console.log('Connect Error: ' + error.toString());
 });
 
-setInterval(function(){
-    sockCon.send(JSON.stringify({'beatMessage': 'check!'}));
-}, 
-1000);
+peerConnection.onnegotiationneeded = async e => {
+    if (isNegotiating) {
+        console.log("SKIP nested negotiations");
+        return;
+    }
+    isNegotiating = true;
+    try {
+        await peerConnection.setLocalDescription(await peerConnection.createOffer(gotDescription, createOfferError));
+        await peerConnection.setRemoteDescription(incomingSdp);
+    } catch (e) {
+        console.log(e);
+    }
+}
+
+peerConnection.onsignalingstatechange = (e) => {  // Workaround for Chrome: skip nested negotiations
+    isNegotiating = (peerConnection.signalingState != "stable");
+}
+
+setInterval(function () {
+    sockCon.send(JSON.stringify({ 'beatMessage': 'check!' }));
+}, 4000);

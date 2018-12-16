@@ -9,10 +9,11 @@ const url = require('url');
 const path = require('path');
 
 //App jest główną klasą aplikacji electrona, BrowserWindow to domyślne przeglądarkowe "okno główne"
-const { app, BrowserWindow } = electron;
+const { app, BrowserWindow, Menu, Tray } = electron;
 
 //deklarujemy zmienną dla okna głównego
 let mainWindow;
+let appTray;
 
 //odpalamy aplikację
 app.on('ready', function () {
@@ -31,6 +32,16 @@ app.on('ready', function () {
         //wartość wyznacza, czy slashe '//' po protokole wyżej są wymagane
         slashes: true
     }));
+
+    appTray = new Tray(path.join(__dirname, '/img/32x32.png'));
+    const contextMenu = Menu.buildFromTemplate([
+        {label: 'Item1', type: 'radio'},
+        {label: 'Item2', type: 'radio'}
+      ]);
+
+      contextMenu.items[1].checked = false;
+    
+    appTray.setContextMenu(contextMenu);
 });
 
 function showHideVideo(){
