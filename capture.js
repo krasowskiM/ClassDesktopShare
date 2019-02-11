@@ -16,6 +16,7 @@ socketClient.connect('wss://stream-support.herokuapp.com/webRTCHandler');
 let sockCon = undefined;
 let peerConnection = new webkitRTCPeerConnection(config);
 let streamSource = undefined;
+let candidates = [];
 
 socketClient.on('connect', function (connection) {
     sockCon = connection;
@@ -33,9 +34,16 @@ socketClient.on('connect', function (connection) {
         if (message.type === 'utf8') {
             console.log("Received: '" + message.utf8Data + "'");
             let signal = JSON.parse(message.utf8Data);
-            if(signal.sdp){
+            if (signal.sdp) {
                 console.log('SDP received. Setting remote...');
                 peerConnection.setRemoteDescription(new RTCSessionDescription(signal.sdp));
+                candidates.forEach(
+                    (candidate) => {
+                        peerConnection.addIceCandidate(candidate);
+                        let ice = JSON.stringify({ 'ice': candidate });
+                        console.log(ice);
+                        sockCon.send(ice);
+                    });
                 console.log('done');
             }
         }
@@ -100,7 +108,7 @@ function handleError(e) {
     console.log(e);
 }
 
-function startStreaming(){
+function startStreaming() {
     start(true, streamSource);
 }
 
@@ -111,7 +119,7 @@ function start(isCaller, stream) {
     }
 }
 
-function stop(){
+function stop() {
     peerConnection.close();
 }
 
@@ -124,11 +132,9 @@ function gotDescription(description) {
 
 function gotIceCandidate(event) {
     if (event.candidate != null) {
-        console.log('ice candidate received');
-        peerConnection.addIceCandidate(event.candidate);
-        let ice = JSON.stringify({ 'ice': event.candidate });
-        console.log(ice);
-        sockCon.send(ice);
+        if (!peerConnection.remoteDescription.type) {
+            candidates.push(event.candidate);
+        }
     }
 }
 
@@ -141,7 +147,6 @@ socketClient.on('connectFailed', function (error) {
     console.log('Connect Error: ' + error.toString());
 });
 
-setInterval(function(){
-    sockCon.send(JSON.stringify({'beatMessage': 'check!'}));
-}, 
-1000);
+setInterval(function () {
+    sockCon.send(JSON.stringify({ 'beatMessage': 'check!' }));
+}, 1000);
