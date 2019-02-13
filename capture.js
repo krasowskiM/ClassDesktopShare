@@ -6,7 +6,24 @@
 const { desktopCapturer } = require('electron');
 const WebSocket = require('websocket').client;
 const config = {
-    iceServers: [{ urls: 'stun:stun.l.google.com:19302?transport=udp' },
+    iceServers: [{
+        urls: [
+            "stun.l.google.com:19302",
+            "stun1.l.google.com:19302",
+            "stun2.l.google.com:19302",
+            "stun3.l.google.com:19302",
+            "stun4.l.google.com:19302",
+            "stun.ekiga.net",
+            "stun.ideasip.com",
+            "stun.rixtelecom.se",
+            "stun.schlund.de",
+            "stun.stunprotocol.org:3478",
+            "stun.voiparound.com",
+            "stun.voipbuster.com",
+            "stun.voipstunt.com",
+            "stun.voxgratia.org"
+        ]
+    },
     { urls: 'turn:numb.viagenie.ca:3478?transport=udp', username: 'macris120@gmail.com', credential: 'admin1' }]
 };
 document.querySelector('#start').addEventListener('click', startStreaming);
@@ -14,7 +31,7 @@ document.querySelector('#stop').addEventListener('click', stop);
 let socketClient = new WebSocket();
 socketClient.connect('wss://stream-support.herokuapp.com/webRTCHandler');
 let sockCon = undefined;
-let peerConnection = new webkitRTCPeerConnection(config);
+let peerConnection = new RTCPeerConnection(config);
 let streamSource = undefined;
 let candidates = [];
 
@@ -39,7 +56,7 @@ socketClient.on('connect', function (connection) {
                 peerConnection.setRemoteDescription(new RTCSessionDescription(signal.sdp));
                 candidates.forEach(
                     (candidate) => {
-                        peerConnection.addIceCandidate(candidate);
+                        peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
                         let ice = JSON.stringify({ 'ice': candidate });
                         console.log(ice);
                         sockCon.send(ice);
@@ -149,4 +166,4 @@ socketClient.on('connectFailed', function (error) {
 
 setInterval(function () {
     sockCon.send(JSON.stringify({ 'beatMessage': 'check!' }));
-}, 1000);
+}, 4000);
